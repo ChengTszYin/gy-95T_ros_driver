@@ -4,6 +4,8 @@ from sensor_msgs.msg import Imu
 import serial
 import struct
 import binascii
+from tf.transformations import quaternion_about_axis
+import numpy as np
 
 # imu类
 
@@ -16,7 +18,7 @@ class IMU:
 
         # 串口初始化
         self.IMU_Usart = serial.Serial(
-            port='/dev/ttyUSB0',  # 根据自己的串口修改串口名
+            port='/dev/ttyUSB1',  # 根据自己的串口修改串口名
             baudrate=115200,  # 波特率
             timeout=0.001  # read_all按照一个timeout周期时间读取数据
         )
@@ -157,6 +159,7 @@ class IMU:
         rospy.Timer(rospy.Duration(0.009), self.timer_callback)
 
     def timer_callback(self, event):
+        count = 0
         if self.IMU_Usart.isOpen():
             count = self.IMU_Usart.inWaiting()
             print("count", count)
@@ -174,11 +177,23 @@ class IMU:
                     3.1415926 / 180.0  # unit transfer to rad/s
                 imu_data.angular_velocity.y = self.GYRO_Y * 3.1415926 / 180.0
                 imu_data.angular_velocity.z = self.GYRO_Z * 3.1415926 / 180.0
-                imu_data.orientation.x = self.Q0
-                imu_data.orientation.y = self.Q1
-                imu_data.orientation.z = self.Q2
-                imu_data.orientation.w = self.Q3
+                # imu_data.orientation.x = self.Q0
+                # imu_data.orientation.y = self.Q1
+                # imu_data.orientation.z = self.Q2
+                # imu_data.orientation.w = self.Q3
+                accel = self.ACC_X, self.ACC_Y, self.ACC_Z
+                ref = np.array([0, 0, 1])
+                acceln = accel / np.linalg.norm(accel)
+                axis = np.cross(acceln, ref)
+                angle = np.arccos(np.dot(acceln, ref))
+                orientation = quaternion_about_axis(angle, axis)
+                o = imu_data.orientation
+                o.x, o.y, o.z, o.w = orientation
+
                 self.publisher_.publish(imu_data)  # 发布imu的数据
+            else:
+                count = 0
+                self.IMU_Usart.read(self.IMU_Usart.inWaiting())
 
         else:
             if self.IMU_Usart != None:

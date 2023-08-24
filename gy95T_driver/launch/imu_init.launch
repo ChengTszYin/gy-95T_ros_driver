@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="gy95T_driver" type="gy95_v2.py" name="imu_publisher" output="screen">
+    </node>
+    <node pkg="gy95T_driver" type="tf_broadcaster_imu.py" name="tf_broadcaster_imu" output="screen">
+    </node>
+</launch>

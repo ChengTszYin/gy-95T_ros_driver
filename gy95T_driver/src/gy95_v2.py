@@ -18,9 +18,9 @@ class IMU:
 
         # 串口初始化
         self.IMU_Usart = serial.Serial(
-            port='/dev/ttyUSB0',  # 根据自己的串口修改串口名
+            port='/dev/ttyUSB2',  # 根据自己的串口修改串口名
             baudrate=115200,  # 波特率
-            timeout=0.001  # read_all按照一个timeout周期时间读取数据
+            timeout=0.01  # read_all按照一个timeout周期时间读取数据
         )
         # 接收数据初始化
         self.ACC_X = 0.0  # X轴加速度
@@ -146,8 +146,18 @@ class IMU:
                             self.Q1 = unpack_data[15] / 10000
                             self.Q2 = unpack_data[16] / 10000
                             self.Q3 = unpack_data[17] / 10000
-                            print(self.__dict__)
-                except:
+                            quat_norm = np.linalg.norm([self.Q0, self.Q1, self.Q2, self.Q3])
+                            if quat_norm != 0:
+                                self.Q0 /= quat_norm
+                                self.Q1 /= quat_norm
+                                self.Q2 /= quat_norm
+                                self.Q3 /= quat_norm
+                            else:
+                                # Fallback to a default quaternion (e.g., identity quaternion)
+                                self.Q0, self.Q1, self.Q2, self.Q3 = 0, 0, 0, 1
+                                # print(self.__dict__)
+                            # print(self.__dict__)
+                except Exception as e:
                     print("接收的数据有错误!!")
                 counter = 0
                 break
